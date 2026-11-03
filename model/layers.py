@@ -7,7 +7,11 @@ import os
 class Resnet_Encoder(nn.Module):
     def __init__(self):
         super(Resnet_Encoder, self).__init__()
-        model = torchvision.models.resnet50(pretrained=True)
+        try:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            model = torchvision.models.resnet50(weights=weights)
+        except AttributeError:
+            model = torchvision.models.resnet50(pretrained=True)
         modules = list(model.children())[:-1]
         self.model = nn.Sequential(*modules)
 
@@ -23,8 +27,12 @@ class Bert_lstm(nn.Module):
     def __init__(self,hidden_dim, bert_path, num_layers, dropout):
         super(Bert_lstm,self).__init__()
         #-------------------bert with fine-tuning-------------------
-        modelConfig = BertConfig.from_pretrained(bert_path)
-        self.bert = BertModel.from_pretrained(bert_path,config=modelConfig)
+        modelConfig = BertConfig.from_pretrained(
+            bert_path, local_files_only=True
+        )
+        self.bert = BertModel.from_pretrained(
+            bert_path, config=modelConfig, local_files_only=True
+        )
         for param in self.bert.parameters():
             param.requires_grad = True   #true or false
         embedding_dim = self.bert.config.hidden_size
