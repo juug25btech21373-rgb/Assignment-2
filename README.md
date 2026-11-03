@@ -100,20 +100,12 @@ Note: This is an adapted implementation using PPMI/SVD entity embeddings because
 
 ```
 Assignment-2/
+├── Final_Output.png
+├── README.md
 ├── data/
-│   ├── pheme_final_fb.csv
-│   └── pheme/
-│       ├── pheme_final_fb.csv
-│       └── images/
-├── data_derived/
-│   └── entity_cooccurrence/
-│       ├── entity2id.txt
-│       └── entity2vec.bin
-├── bert-base-uncased/
+│   └── pheme_final_fb.csv
 ├── model/
-├── process/
-├── screenshots/
-└── README.md
+└── process/
 ```
 
 ## Citation
