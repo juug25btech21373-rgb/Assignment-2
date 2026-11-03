@@ -227,7 +227,9 @@ def pre_training_pheme(pathset, config):
     X_txt = tokens_ids
     X_img = np.array(image_id)
 
-    X_kg = np.array(mids_all)
+    # Each post contains a variable number of entities. Keep this as a
+    # Python list; np.array(mids_all) raises on ragged nested sequences.
+    X_kg = mids_all
 
     # X = np.array(tokens_ids)
     y = np.array(label)
