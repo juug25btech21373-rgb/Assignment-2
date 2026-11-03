@@ -77,7 +77,26 @@ The training script writes fold test metrics and prints final averaged accuracy,
 
 ## Screenshots
 
-Add genuine screenshots from the successful Colab execution under `screenshots/` and reference them here after training and evaluation complete.
+## Model Training Output
+
+The model was trained and evaluated using Google Colab.
+
+### Training Configuration
+
+- Dataset: PHEME
+- Model: Dual-Inconsistency
+- Batch size: 4
+- Epochs: 1
+- Learning rate: 0.00005
+- Evaluation: 5-fold cross-validation
+
+### Final Training Output
+
+The training process completed successfully.
+
+![Completed Model Training Output](Final_Output.png)
+
+Note: This is an adapted implementation using PPMI/SVD entity embeddings because the original pretrained Freebase resources were unavailable.
 
 ## Project structure
 
