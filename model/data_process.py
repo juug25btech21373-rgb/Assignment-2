@@ -1,12 +1,7 @@
-import torch
-from gensim.models import Word2Vec
-import torch.nn as nn
-from torchvision import transforms
-from PIL import Image
 import os
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-import torchtext.vocab as vocab
+import torch
+from torchvision import transforms
 from rand5_fold import *
 import warnings
 warnings.filterwarnings('ignore')
@@ -36,10 +31,18 @@ class data_preprocess_ATT_bert_nfold():
         # self.embedding_glove = []
 
     def get_transe(self):
-        vec = np.memmap(self.transE_path, dtype='float32', mode='r')
-        # row = int(vec.shape[0]/50)
-        self.embedding = vec.reshape((-1,50))
-        self.embedding_entity_dim = 50 #50
+        if not os.path.isfile(self.transE_path):
+            raise FileNotFoundError(
+                "50D dataset-derived embedding file not found: "
+                + self.transE_path
+            )
+        vec = np.fromfile(self.transE_path, dtype=np.float32)
+        if vec.size % 50 != 0:
+            raise ValueError(
+                "Embedding file size is not divisible by 50 float32 values."
+            )
+        self.embedding = vec.reshape((-1, 50))
+        self.embedding_entity_dim = 50
 
         self.add_entity_embedding("<pad1>")
         self.add_entity_embedding("<pad2>")
@@ -66,13 +69,13 @@ class data_preprocess_ATT_bert_nfold():
             self.mid2index[mid] = int(idx)
         return self.mid2index
 
-    def add_entity_embedding(self,entity):
-        vec_entity = torch.empty(1, 50)
-        nn.init.uniform_(vec_entity)
+    def add_entity_embedding(self, entity):
+        # Deterministic zero vectors for the four padding entities.
+        vec_entity = np.zeros((1, 50), dtype=np.float32)
         self.mid2index[entity] = len(self.mid2index)
-        # self.index2mid.append(entity)
-        vec_entity = vec_entity.numpy()
-        self.embedding = np.concatenate([self.embedding, vec_entity], 0)
+        self.embedding = np.concatenate(
+            [self.embedding, vec_entity], axis=0
+        )
 
     def top_dis_entity_cos(self,mid_post_index,embedding):
         # top_dis = 0
