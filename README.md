@@ -75,8 +75,6 @@ The command above is an initial training test only. The program uses five folds,
 
 The training script writes fold test metrics and prints final averaged accuracy, precision, recall, and F1. Report only values produced by an actual run.
 
-## Screenshots
-
 ## Model Training Output
 
 The model was trained and evaluated using Google Colab.
