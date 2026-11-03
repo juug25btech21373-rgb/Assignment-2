@@ -88,6 +88,8 @@ def train(train_dict,val_dict,test_dict,model_mode,device,config,dataset,args,tr
     model = model.to(device)
     if torch.cuda.device_count()>1:
         model = torch.nn.DataParallel(model)
+    # Resolve the base module on both single- and multi-GPU systems.
+    core_model = model.module if hasattr(model, "module") else model
 
     pytorch_total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('total number of parameters:',pytorch_total_trainable_params)
@@ -122,26 +124,28 @@ def train(train_dict,val_dict,test_dict,model_mode,device,config,dataset,args,tr
                                                batch_size=args.batch,
                                                shuffle=True,
                                                # sampler=train_sampler,
-                                               num_workers=2)
+                                               num_workers=0)
     val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
                                              batch_size=args.batch,
                                              shuffle=True,
                                              # sampler=train_sampler,
-                                             num_workers=2)
+                                             num_workers=0)
     t_batch = len(train_loader)
     v_batch = len(val_loader)
     #======================================================================
     model.train()
     criterion_clf = nn.BCELoss()
     criterion_orth = Orth_Loss()
-    bert_params = list(map(id,model.module.txtenc.bert.parameters()))
+    bert_params = list(map(id,core_model.txtenc.bert.parameters()))
     base_params = filter(lambda p:id(p) not in bert_params,model.parameters())
     # optimizier = optim.Adam(model.parameters(),lr=args.lr)
     optimizier = optim.Adam([
-        {'params':model.module.txtenc.bert.parameters(),'lr':5e-5},
+        {'params':core_model.txtenc.bert.parameters(),'lr':5e-5},
         {'params':base_params}
     ],lr = args.lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizier,'min',factor=0.1,patience=5,verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizier, mode="min", factor=0.1, patience=5
+    )
     earlystopping = EarlyStopping(dataset,p,10)
     val_loss_min = 5
     val_acc_max = 0
@@ -160,18 +164,18 @@ def train(train_dict,val_dict,test_dict,model_mode,device,config,dataset,args,tr
 
             optimizier.zero_grad()
             outputs_class = model(input_ids,attention_masks,img,kg1,kg2,kg_sim,args)
-            outputs_class = outputs_class.squeeze()
+            outputs_class = outputs_class.view(-1)
             loss_class = criterion_clf(outputs_class,labels)
-            loss = loss_class + args.lambda_orth*criterion_orth(p_img=model.module.ln_uniq_img.weight,\
-                                                   p_txt=model.module.ln_uniq_txt.weight,\
-                                                   w_shr=model.module.ln_shr.weight)
+            loss = loss_class + args.lambda_orth*criterion_orth(p_img=core_model.ln_uniq_img.weight,\
+                                                   p_txt=core_model.ln_uniq_txt.weight,\
+                                                   w_shr=core_model.ln_shr.weight)
             loss.backward()
             optimizier.step()
             correct = evaluation(outputs_class,labels)
-            total_acc += (correct/args.batch)
+            total_acc += (correct/labels.size(0))
             total_loss += loss.item()
             print('the running process is [{}]'.format(p),'[Epoch{}]'.format(epoch+1),\
-                  "{}/{}".format(i+1,t_batch),"loss:",loss.item(),"acc:",correct*100/args.batch)
+                  "{}/{}".format(i+1,t_batch),"loss:",loss.item(),"acc:",correct*100/labels.size(0))
         print('\nTrain | Loss:{:.5f} ACC:{:.3f}'.format(total_loss/t_batch, total_acc*100/t_batch))
 
         model.eval()
@@ -187,13 +191,13 @@ def train(train_dict,val_dict,test_dict,model_mode,device,config,dataset,args,tr
                 labels = labels.to(device, dtype=torch.float)
 
                 outputs_class = model(input_ids, attention_masks, img, kg1, kg2, kg_sim,args)
-                outputs_class = outputs_class.squeeze()
+                outputs_class = outputs_class.view(-1)
                 loss_class = criterion_clf(outputs_class, labels)
-                loss = loss_class + args.lambda_orth * criterion_orth(p_img=model.module.ln_uniq_img.weight, \
-                                                                      p_txt=model.module.ln_uniq_txt.weight, \
-                                                                      w_shr=model.module.ln_shr.weight)
+                loss = loss_class + args.lambda_orth * criterion_orth(p_img=core_model.ln_uniq_img.weight, \
+                                                                      p_txt=core_model.ln_uniq_txt.weight, \
+                                                                      w_shr=core_model.ln_shr.weight)
                 correct = evaluation(outputs_class, labels)
-                total_acc += (correct/args.batch)
+                total_acc += (correct/labels.size(0))
                 total_loss += loss.item()
             print("valid | Loss:{:.5f} ACC:{:.3f}".format(total_loss/v_batch, total_acc*100/v_batch))
             val_loss = total_loss/v_batch
@@ -203,7 +207,7 @@ def train(train_dict,val_dict,test_dict,model_mode,device,config,dataset,args,tr
                 earlystopping.save_checkpoint(total_loss/v_batch, model)
         model.train()
         scheduler.step(val_loss)
-    model = earlystopping.load_model()
+    model = earlystopping.load_model().to(device)
     test_result_dict = test(test_dict,model,device,config,dataset,model_mode,args,transform,pathset,p)
     return test_result_dict
 
@@ -224,7 +228,7 @@ def test(test_dict,model,device,config,dataset,model_mode,args,transform,pathset
                                              batch_size=args.batch,
                                              shuffle=False,
                                              # sampler=train_sampler,
-                                             num_workers=2)
+                                             num_workers=0)
     model.eval()
     with torch.no_grad():
         for i, (input_ids, attention_masks, img, kg1, kg2, kg_sim, labels) in enumerate(test_loader):
@@ -237,7 +241,7 @@ def test(test_dict,model,device,config,dataset,model_mode,args,transform,pathset
             labels = labels.to(device, dtype=torch.float)
 
             outputs_class = model(input_ids, attention_masks, img, kg1, kg2, kg_sim,args)
-            outputs_class = outputs_class.squeeze()
+            outputs_class = outputs_class.view(-1)
 
             outputs_class[outputs_class >= 0.5] = 1
             outputs_class[outputs_class < 0.5] = 0
