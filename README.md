@@ -19,23 +19,47 @@ The historical tweet images are also incomplete. The current filtered dataset co
 
 ## Dataset preparation
 
-The original CSV in `data/pheme_final_fb.csv` contains 2,374 records. In the preparation run for this assignment:
-- Original CSV records: 2,374
-- Records retained after validating image files: 2,069
-- Rows excluded because their referenced images were unavailable: 305
+The original PHEME CSV is included in the repository at
+`data/pheme_final_fb.csv`. It contains 2,374 records.
+
+During Google Colab preparation, the dataset was filtered
+using the availability and validation of image files.
+
+Dataset statistics:
+- Original records: 2,374
+- Records retained for training: 2,069
+- Positive examples: 1,447
+- Negative examples: 622
+- Rows excluded due to unavailable images: 305
 - Distinct missing image IDs: 275
 
-The filtered CSV is stored at `data/pheme/pheme_final_fb.csv`.
+The filtered training CSV was created in Colab at:
+`data/pheme/pheme_final_fb.csv`.
 
-Image files are expected at `data/pheme/images/<image_id>.jpg`.
+The recovered image files were stored at:
+`data/pheme/images/`.
 
-Do not claim that the excluded records were used in training.
+The filtered CSV and image files are kept in Google Drive
+rather than included in this GitHub repository.
 
 ## Runtime
 
-The project is adapted for a Google Colab runtime with an NVIDIA T4 GPU. GPU availability and runtime limits depend on Colab.
+The project was executed using Google Colab with an NVIDIA
+Tesla T4 GPU.
 
-The original repository lists Python 3.6, PyTorch 1.4.0, Transformers 4.9.1 and NLTK. This adaptation uses the active Colab PyTorch/torchvision installation and a locally downloaded BERT model.
+Environment used:
+- Python: 3.13.16
+- PyTorch: 2.11.0+cu130
+- Torchvision: 0.26.0+cu130
+- Transformers: 4.57.1
+- GPU: NVIDIA Tesla T4
+
+The BERT-base-uncased model was downloaded locally
+and used for text feature extraction.
+
+The implementation was adapted to work with the
+available Colab environment rather than the original
+older software versions.
 
 ## Required resources (kept outside GitHub)
 
@@ -73,7 +97,33 @@ The command above is an initial training test only. The program uses five folds,
 
 ## Evaluation
 
-The training script writes fold test metrics and prints final averaged accuracy, precision, recall, and F1. Report only values produced by an actual run.
+The model was trained and evaluated using five-fold
+cross-validation.
+
+Training configuration:
+- Dataset: PHEME
+- Model: Dual-Inconsistency
+- Batch size: 4
+- Epochs per fold: 1
+- Learning rate: 0.00005
+- Orthogonality loss weight: 1.5
+- Number of folds: 5
+
+### Final Average Test Results
+
+| Metric | Result |
+|---|---:|
+| Accuracy | 0.712324 |
+| Precision | 0.479098 |
+| Recall | 0.529539 |
+| F1-score | 0.494771 |
+
+These values are the final averages printed by the
+completed five-fold training run.
+
+This is an initial one-epoch result using the adapted
+dataset and PPMI/SVD entity embeddings. It is not a
+tuned result or an exact reproduction of the original paper.
 
 ## Model Training Output
 
