@@ -190,7 +190,9 @@ def pre_training_pheme(pathset, config):
     # # print(tweet)
     UNCASED = pathset.path_bert
     VOCAB = pathset.VOCAB
-    tokenizer = BertTokenizer.from_pretrained(os.path.join(UNCASED, VOCAB))
+    tokenizer = BertTokenizer.from_pretrained(
+        UNCASED, local_files_only=True
+    )
     tokens_ids = []
     # for tw in tweet:
     #     tw = "[CLS] " + tw + " [SEP]"
